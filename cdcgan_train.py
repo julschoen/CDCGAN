@@ -7,6 +7,7 @@ import torchvision.utils as vutils
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torchvision
+from carbontracker.tracker import CarbonTracker
 
 import os
 import numpy as np
@@ -35,6 +36,10 @@ class Trainer():
         # setup optimizer
         self.optD = torch.optim.Adam(self.model.parameters(), lr=self.p.lr)
         self.optIms = torch.optim.Adam([self.ims], lr=self.p.lrIms)
+
+        if not os.path.isdir('./cdc_carbon'):
+            os.mkdir('./cdc_carbon')
+        self.tracker = CarbonTracker(epochs=self.p.niter, log_dir='./cdc_carbon/')
 
     def inf_train_gen(self):
         while True:
@@ -71,6 +76,7 @@ class Trainer():
 
         for t in range(self.p.niter):
             #self.shuffle()
+            self.tracker.epoch_start()
             for p in self.model.parameters():
                 p.requires_grad = True
             for _ in range(1):
@@ -113,12 +119,16 @@ class Trainer():
             errG = torch.sqrt(mmd2_G)
             errG.backward()
             self.optIms.step()
-
             self.ims.requires_grad = False
+
+            self.tracker.epoch_end()
 
 
 
             if ((t+1)%100 == 0) or (t==0):
                 self.log_interpolation(t)
                 print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item()))
+
+
+        self.tracker.stop()
         self.save()
