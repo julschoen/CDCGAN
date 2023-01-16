@@ -28,13 +28,13 @@ class Trainer():
         if self.p.cifar:
             if self.p.init_ims:
                 self.ims, _ = next(self.gen)
-                self.ims.to(self.p.device)
+                self.ims = self.ims.to(self.p.device)
             else:
                 self.ims = torch.randn(10*self.p.num_ims,3,32,32).to(self.p.device)
         else:
             if self.p.init_ims:
                 self.ims, _ = next(self.gen)
-                self.ims.to(self.p.device)
+                self.ims = self.ims.to(self.p.device)
             else:
                 self.ims = torch.randn(10*self.p.num_ims,1,28,28).to(self.p.device)
         self.ims = torch.nn.Parameter(self.ims)
