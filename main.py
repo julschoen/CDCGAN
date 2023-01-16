@@ -13,6 +13,7 @@ def main():
     parser.add_argument('--lrIms', type=float, default=1e-1, metavar='LR', help='learning rate (default: 0.001)')
     parser.add_argument('--num_ims', type=int, default=10)
     parser.add_argument('--cifar', type=bool, default=False)
+    parser.add_argument('--cmmd', type=bool, default=False)
 
     # Model Params
     parser.add_argument('--k', type=int, default=100, help='VAE Latent Space Size')
