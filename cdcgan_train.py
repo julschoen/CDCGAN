@@ -1,0 +1,119 @@
+import torch
+import torch.nn as nn
+import torch.nn.parallel
+import torch.backends.cudnn as cudnn
+import torch.utils.data
+import torchvision.utils as vutils
+from torch.autograd import Variable
+import torch.nn.functional as F
+import torchvision
+
+import os
+import numpy as np
+from cdcgan import Discriminator
+from mmd import mix_rbf_mmd2, mix_rbf_cmmd2
+
+
+class Trainer():
+    def __init__(self, params, train_loader, test_loader):
+        self.p = params
+
+        self.losses = []
+        self.test_losses = []
+        self.model = Discriminator(k=self.p.k)
+        self.ims = torch.clamp(torch.randn(10*self.p.num_ims,1,28,28), 0,1)
+        self.ims = torch.nn.Parameter(self.ims)
+        self.labels = torch.arange(10).repeat(self.p.num_ims,1).T.flatten()
+
+        self.train_loader = train_loader
+        self.test_loader = test_loader
+        
+        base = 1.0
+        sigma_list = [1, 2, 4, 8, 16]
+        self.sigma_list = [sigma / base for sigma in sigma_list]
+
+
+        # setup optimizer
+        self.optD = torch.optim.Adam(self.model.parameters(), lr=self.p.lr)
+        self.optIms = torch.optim.Adam([self.ims], lr=0.1)
+
+    def inf_train_gen(self):
+        while True:
+            for data in self.train_loader:
+                yield data
+
+    def log_interpolation(self, step):
+        if not os.path.isdir('./cdc_images'):
+            os.mkdir('./cdc_images')
+        torchvision.utils.save_image(
+            vutils.make_grid(torch.reshape(torch.sigmoid(self.ims), (-1,1,28,28)), padding=2, normalize=True)
+            , os.path.join('./cdc_images', f'{step}.png'))
+
+    def shuffle(self):
+        indices = torch.randperm(self.ims.shape[0])
+        self.ims = torch.index_select(self.ims, dim=0, index=indices)
+        self.labels = torch.index_select(self.labels, dim=0, index=indices)
+
+    def save(self):
+        if not os.path.isdir("./checkpoints"):
+            os.mkdir("./checkpoints")
+        file_name = './checkpoints/data.pt'
+        torch.save(torch.sigmoid(self.ims), file_name)
+
+        file_name = './checkpoints/labels.pt'
+        torch.save(self.labels, file_name)
+
+    def train(self):
+        gen = self.inf_train_gen()
+        for p in self.model.parameters():
+                    p.requires_grad = False
+        self.ims.requires_grad = False
+
+
+        for t in range(self.p.niter):
+            #self.shuffle()
+            for p in self.model.parameters():
+                p.requires_grad = True
+            for _ in range(1):
+                for p in self.model.parameters():
+                    p.data.clamp_(-0.01, 0.01)
+
+                data, labels = next(gen)
+
+                self.model.zero_grad()
+                encX = self.model(data, labels)
+                encY = self.model(torch.sigmoid(self.ims), self.labels)
+
+                mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                mmd2_D = F.relu(mmd2_D)
+                errD = -torch.sqrt(mmd2_D)
+                errD.backward()
+                self.optD.step()
+
+
+            for p in self.model.parameters():
+                p.requires_grad = False
+
+            self.ims.requires_grad = True
+            data, labels = next(gen)
+
+            self.optIms.zero_grad()
+
+            encX = self.model(data, labels)
+            encY = self.model(torch.sigmoid(self.ims), self.labels)
+
+            mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+            mmd2_G = F.relu(mmd2_G)
+
+            errG = torch.sqrt(mmd2_G)
+            errG.backward()
+            self.optIms.step()
+
+            self.ims.requires_grad = False
+
+
+
+            if ((t+1)%100 == 0) or (t==0):
+                self.log_interpolation(t)
+                print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item()))
+        self.save()
