@@ -25,6 +25,9 @@ class Trainer():
         self.train_loader = train_loader
         self.gen = self.inf_train_gen()
 
+        if not os.path.isdir(self.p.log_dir):
+            os.mkdir(self.p.log_dir)
+
         if self.p.cifar:
             if self.p.init_ims:
                 self.ims, _ = next(self.gen)
