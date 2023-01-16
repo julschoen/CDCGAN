@@ -1,4 +1,5 @@
 import argparse
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -124,6 +125,7 @@ def main():
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--train_full', type=bool, default=False)
     parser.add_argument('--cifar', type=bool, default=False)
+    parser.add_argument('--log_dir', type=str, default='./log')
     args = parser.parse_args()
 
     device = args.device
@@ -155,8 +157,9 @@ def main():
             train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
 
-    targets = torch.load('checkpoints/labels.pt')
-    features = torch.load('checkpoints/data.pt')
+    chkpt = os.path.join(self.args.log_dir, 'checkpoints')
+    targets = torch.load(os.path.join(chkpt,'labels.pt'))
+    features = torch.load(os.path.join(chkpt, 'data.pt'))
     synth = data_utils.TensorDataset(features, targets)
     train_loader = torch.utils.data.DataLoader(synth, batch_size=args.batch_size, shuffle=True)
 
