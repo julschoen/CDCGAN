@@ -15,27 +15,26 @@ from mmd import mix_rbf_mmd2, mix_rbf_cmmd2
 
 
 class Trainer():
-    def __init__(self, params, train_loader, test_loader):
+    def __init__(self, params, train_loader):
         self.p = params
 
         self.losses = []
         self.test_losses = []
         self.model = Discriminator(k=self.p.k)
-        self.ims = torch.clamp(torch.randn(10*self.p.num_ims,1,28,28), 0,1)
+        if self.p.cifar:
+            self.ims = torch.clamp(torch.randn(10*self.p.num_ims,3,32,32), 0,1)
+        else:
+            self.ims = torch.clamp(torch.randn(10*self.p.num_ims,1,28,28), 0,1)
         self.ims = torch.nn.Parameter(self.ims)
         self.labels = torch.arange(10).repeat(self.p.num_ims,1).T.flatten()
 
         self.train_loader = train_loader
-        self.test_loader = test_loader
         
-        base = 1.0
-        sigma_list = [1, 2, 4, 8, 16]
-        self.sigma_list = [sigma / base for sigma in sigma_list]
-
+        self.sigma_list = [1, 2, 4, 8, 16, 24, 32, 64]
 
         # setup optimizer
         self.optD = torch.optim.Adam(self.model.parameters(), lr=self.p.lr)
-        self.optIms = torch.optim.Adam([self.ims], lr=0.1)
+        self.optIms = torch.optim.Adam([self.ims], lr=self.p.lrIms)
 
     def inf_train_gen(self):
         while True:
@@ -46,7 +45,7 @@ class Trainer():
         if not os.path.isdir('./cdc_images'):
             os.mkdir('./cdc_images')
         torchvision.utils.save_image(
-            vutils.make_grid(torch.reshape(torch.sigmoid(self.ims), (-1,1,28,28)), padding=2, normalize=True)
+            vutils.make_grid(torch.sigmoid(self.ims), padding=2, normalize=True)
             , os.path.join('./cdc_images', f'{step}.png'))
 
     def shuffle(self):
@@ -84,7 +83,10 @@ class Trainer():
                 encX = self.model(data, labels)
                 encY = self.model(torch.sigmoid(self.ims), self.labels)
 
-                mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                if self.p.cmmd:
+                    mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                else:
+                    mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
                 mmd2_D = F.relu(mmd2_D)
                 errD = -torch.sqrt(mmd2_D)
                 errD.backward()
@@ -102,7 +104,10 @@ class Trainer():
             encX = self.model(data, labels)
             encY = self.model(torch.sigmoid(self.ims), self.labels)
 
-            mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+            if self.p.cmmd:
+                mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+            else:
+                mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
             mmd2_G = F.relu(mmd2_G)
 
             errG = torch.sqrt(mmd2_G)
