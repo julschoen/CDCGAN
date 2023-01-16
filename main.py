@@ -14,6 +14,9 @@ def main():
     parser.add_argument('--num_ims', type=int, default=10)
     parser.add_argument('--cifar', type=bool, default=False)
     parser.add_argument('--cmmd', type=bool, default=False)
+    parse.add_argument('--k', type=int, default=100)
+    parser.add_argument('--filter', type=int, default=128)
+    parser.add_argument('--device', type=str, default='cuda')
 
     # Model Params
     parser.add_argument('--k', type=int, default=100, help='VAE Latent Space Size')
