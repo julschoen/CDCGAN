@@ -21,7 +21,7 @@ class Trainer():
 
         self.losses = []
         self.test_losses = []
-        self.model = Discriminator(k=self.p.k).to(self.p.device)
+        self.model = Discriminator(self.p).to(self.p.device)
         if self.p.cifar:
             self.ims = torch.randn(10*self.p.num_ims,3,32,32).to(self.p.device)
         else:
