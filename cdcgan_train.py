@@ -56,11 +56,12 @@ class Trainer():
                 yield data
 
     def log_interpolation(self, step):
-        if not os.path.isdir('./cdc_images'):
-            os.mkdir('./cdc_images')
+        path = os.path.join(self.p.log_dir, 'images')
+        if not os.path.isdir(path):
+            os.mkdir(path)
         torchvision.utils.save_image(
             vutils.make_grid(torch.sigmoid(self.ims), padding=2, normalize=True)
-            , os.path.join('./cdc_images', f'{step}.png'))
+            , os.path.join(path, f'{step}.png'))
 
     def shuffle(self):
         indices = torch.randperm(self.ims.shape[0])
@@ -68,12 +69,13 @@ class Trainer():
         self.labels = torch.index_select(self.labels, dim=0, index=indices)
 
     def save(self):
-        if not os.path.isdir("./checkpoints"):
-            os.mkdir("./checkpoints")
-        file_name = './checkpoints/data.pt'
+        path = os.path.join(self.p.log_dir, 'checkpoints')
+        if not os.path.isdir(path):
+            os.mkdir(path)
+        file_name = os.path.join(path, 'data.pt')
         torch.save(torch.sigmoid(self.ims.cpu()), file_name)
 
-        file_name = './checkpoints/labels.pt'
+        file_name = os.path.join(path, 'labels.pt')
         torch.save(self.labels.cpu(), file_name)
 
     def train(self):
