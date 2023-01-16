@@ -157,7 +157,7 @@ def main():
             train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
 
-    chkpt = os.path.join(self.args.log_dir, 'checkpoints')
+    chkpt = os.path.join(args.log_dir, 'checkpoints')
     targets = torch.load(os.path.join(chkpt,'labels.pt'))
     features = torch.load(os.path.join(chkpt, 'data.pt'))
     synth = data_utils.TensorDataset(features, targets)
