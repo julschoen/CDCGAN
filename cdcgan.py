@@ -4,16 +4,22 @@ import torch.nn.functional as F
 
 class Discriminator(nn.Module):
     # initializers
-    def __init__(self, d=128, k=100):
+    def __init__(self, params):
         super(Discriminator, self).__init__()
-        self.conv1_1 = nn.Conv2d(1, d//2, 4, 2, 1)
+
+        ch = 3 if params.cifar else 1
+        final_kernel = 4 if params.cifar else 3
+        d = params.filter
+        im_size = 32 if params.cifar else 28
+
+        self.conv1_1 = nn.Conv2d(ch, d//2, 4, 2, 1)
         self.conv1_2 = nn.Conv2d(10, d//2, 4, 2, 1)
         self.conv2 = nn.Conv2d(d, d*2, 4, 2, 1)
         self.conv2_bn = nn.BatchNorm2d(d*2)
         self.conv3 = nn.Conv2d(d*2, d*4, 4, 2, 1)
         self.conv3_bn = nn.BatchNorm2d(d*4)
-        self.conv4 = nn.Conv2d(d * 4, k, 3, 1, 0)
-        self.fill = torch.zeros([10, 10, 28, 28])
+        self.conv4 = nn.Conv2d(d * 4, params.k, final_kernel, 1, 0)
+        self.fill = torch.zeros([10, 10, im_size, im_size])
         for i in range(10):
             self.fill[i, i, :, :] = 1
 
