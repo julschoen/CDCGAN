@@ -7,30 +7,80 @@ from torchvision import datasets, transforms
 import torch.utils.data as data_utils
 
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(9216, 128)
-        self.fc2 = nn.Linear(128, 10)
+class ConvNet(nn.Module):
+    def __init__(self, params, num_classes=10, net_width=128, net_depth=3, net_act='relu', net_norm='instancenorm', net_pooling='avgpooling'):
+        super(ConvNet, self).__init__()
+
+        channel = 3 if params.cifar else 1
+        im_size = (32,32) if params.cifar else (28,28)
+
+        self.features, shape_feat = self._make_layers(channel, net_width, net_depth, net_norm, net_act, net_pooling, im_size)
+        num_feat = shape_feat[0]*shape_feat[1]*shape_feat[2]
+        self.classifier = nn.Linear(num_feat, num_classes)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        # print("MODEL DATA ON: ", x.get_device(), "MODEL PARAMS ON: ", self.classifier.weight.data.get_device())
+        out = self.features(x)
+        out = out.view(out.size(0), -1)
+        out = self.classifier(out)
+        out = F.log_softmax(out, dim=1)
+        return out
+
+    def _get_activation(self, net_act):
+        if net_act == 'sigmoid':
+            return nn.Sigmoid()
+        elif net_act == 'relu':
+            return nn.ReLU(inplace=True)
+        elif net_act == 'leakyrelu':
+            return nn.LeakyReLU(negative_slope=0.01)
+        else:
+            exit('unknown activation function: %s'%net_act)
+
+    def _get_pooling(self, net_pooling):
+        if net_pooling == 'maxpooling':
+            return nn.MaxPool2d(kernel_size=2, stride=2)
+        elif net_pooling == 'avgpooling':
+            return nn.AvgPool2d(kernel_size=2, stride=2)
+        elif net_pooling == 'none':
+            return None
+        else:
+            exit('unknown net_pooling: %s'%net_pooling)
+
+    def _get_normlayer(self, net_norm, shape_feat):
+        # shape_feat = (c*h*w)
+        if net_norm == 'batchnorm':
+            return nn.BatchNorm2d(shape_feat[0], affine=True)
+        elif net_norm == 'layernorm':
+            return nn.LayerNorm(shape_feat, elementwise_affine=True)
+        elif net_norm == 'instancenorm':
+            return nn.GroupNorm(shape_feat[0], shape_feat[0], affine=True)
+        elif net_norm == 'groupnorm':
+            return nn.GroupNorm(4, shape_feat[0], affine=True)
+        elif net_norm == 'none':
+            return None
+        else:
+            exit('unknown net_norm: %s'%net_norm)
+
+    def _make_layers(self, channel, net_width, net_depth, net_norm, net_act, net_pooling, im_size):
+        layers = []
+        in_channels = channel
+        if im_size[0] == 28:
+            im_size = (32, 32)
+        shape_feat = [in_channels, im_size[0], im_size[1]]
+        for d in range(net_depth):
+            layers += [nn.Conv2d(in_channels, net_width, kernel_size=3, padding=3 if channel == 1 and d == 0 else 1)]
+            shape_feat[0] = net_width
+            if net_norm != 'none':
+                layers += [self._get_normlayer(net_norm, shape_feat)]
+            layers += [self._get_activation(net_act)]
+            in_channels = net_width
+            if net_pooling != 'none':
+                layers += [self._get_pooling(net_pooling)]
+                shape_feat[1] //= 2
+                shape_feat[2] //= 2
+
+
+        return nn.Sequential(*layers), shape_feat
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -42,10 +92,6 @@ def train(args, model, device, train_loader, optimizer, epoch):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
 
 
 def test(model, device, test_loader):
@@ -70,20 +116,15 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
-                        help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 14)')
-    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
-                        help='learning rate (default: 1.0)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--save-model', action='store_true', default=False,
-                        help='For Saving the current Model')
+    parser.add_argument('--batch-size', type=int, default=100)
+    parser.add_argument('--test-batch-size', type=int, default=1000)
+    parser.add_argument('--epochs', type=int, default=30)
+    parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--save-model', type=bool, default=False)
+    parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--train_full', type=bool, default=False)
+    parser.add_argument('--cifar', type=bool, default=False)
     args = parser.parse_args()
-    device = torch.device("cpu")
 
     train_kwargs = {'batch_size': args.batch_size}
     test_kwargs = {'batch_size': args.test_batch_size}
@@ -91,31 +132,38 @@ def main():
     transform=transforms.Compose([
         transforms.ToTensor()
         ])
-    dataset1 = datasets.MNIST('./', train=True, download=True,
-                       transform=transform)
-    dataset2 = datasets.MNIST('./', train=False,
-                       transform=transform)
+    if args.cifar:
+        dataset1 = datasets.CIFAR10('./', train=True, download=True,
+                           transform=transform)
+        dataset2 = datasets.CIFAR10('./', train=False,
+                           transform=transform)
+    else:
+        dataset1 = datasets.MNIST('./', train=True, download=True,
+                           transform=transform)
+        dataset2 = datasets.MNIST('./', train=False,
+                           transform=transform)
     train_loader = torch.utils.data.DataLoader(dataset1, shuffle=True, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
-    model = Net().to(device)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    if args.train_full:
+        model = ConvNet(args).to(device)
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
+        for epoch in range(1, args.epochs + 1):
+            train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
 
     targets = torch.load('checkpoints/labels.pt')
-    features = torch.load('checkpoints/data.pt').reshape(-1,1,28,28)
+    features = torch.load('checkpoints/data.pt')
     synth = data_utils.TensorDataset(features, targets)
     train_loader = torch.utils.data.DataLoader(synth, batch_size=args.batch_size, shuffle=True)
 
-    model = Net().to(device)
+    model = ConvNet(args).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    for epoch in range(1, 30):
+    for epoch in range(1, 100):
         train(args, model, device, train_loader, optimizer, epoch)
-        test(model, device, test_loader)
+    test(model, device, test_loader)
 
     if args.save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
