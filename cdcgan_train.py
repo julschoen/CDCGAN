@@ -22,10 +22,20 @@ class Trainer():
         self.losses = []
         self.test_losses = []
         self.model = Discriminator(self.p).to(self.p.device)
+        self.gen = self.inf_train_gen()
+
         if self.p.cifar:
-            self.ims = torch.randn(10*self.p.num_ims,3,32,32).to(self.p.device)
+            if self.p.init_ims:
+                self.ims, _ = next(self.gen)
+                self.ims.to(self.p.device)
+            else:
+                self.ims = torch.randn(10*self.p.num_ims,3,32,32).to(self.p.device)
         else:
-            self.ims = torch.randn(10*self.p.num_ims,1,28,28).to(self.p.device)
+            if self.p.init_ims:
+                self.ims, _ = next(self.gen)
+                self.ims.to(self.p.device)
+            else:
+                self.ims = torch.randn(10*self.p.num_ims,1,28,28).to(self.p.device)
         self.ims = torch.nn.Parameter(self.ims)
         self.labels = torch.arange(10).repeat(self.p.num_ims,1).T.flatten()
 
@@ -68,11 +78,9 @@ class Trainer():
         torch.save(self.labels.cpu(), file_name)
 
     def train(self):
-        gen = self.inf_train_gen()
         for p in self.model.parameters():
                     p.requires_grad = False
         self.ims.requires_grad = False
-
 
         for t in range(self.p.niter):
             #self.shuffle()
@@ -83,7 +91,7 @@ class Trainer():
                 for p in self.model.parameters():
                     p.data.clamp_(-0.01, 0.01)
 
-                data, labels = next(gen)
+                data, labels = next(self.gen)
 
                 self.model.zero_grad()
                 encX = self.model(data.to(self.p.device), labels)
@@ -103,7 +111,7 @@ class Trainer():
                 p.requires_grad = False
 
             self.ims.requires_grad = True
-            data, labels = next(gen)
+            data, labels = next(self.gen)
 
             self.optIms.zero_grad()
 
@@ -122,8 +130,6 @@ class Trainer():
             self.ims.requires_grad = False
 
             self.tracker.epoch_end()
-
-
 
             if ((t+1)%100 == 0) or (t==0):
                 self.log_interpolation(t)
