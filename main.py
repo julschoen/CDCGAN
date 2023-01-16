@@ -16,6 +16,7 @@ def main():
     parser.add_argument('--cmmd', type=bool, default=False)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--init_ims', type=bool, default=False)
+    parser.add_argument('--log_dir', type=str, default='./log')
 
     # Model Params
     parser.add_argument('--k', type=int, default=100)
