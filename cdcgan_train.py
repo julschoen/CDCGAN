@@ -22,6 +22,7 @@ class Trainer():
         self.losses = []
         self.test_losses = []
         self.model = Discriminator(self.p).to(self.p.device)
+        self.train_loader = train_loader
         self.gen = self.inf_train_gen()
 
         if self.p.cifar:
@@ -38,8 +39,6 @@ class Trainer():
                 self.ims = torch.randn(10*self.p.num_ims,1,28,28).to(self.p.device)
         self.ims = torch.nn.Parameter(self.ims)
         self.labels = torch.arange(10).repeat(self.p.num_ims,1).T.flatten()
-
-        self.train_loader = train_loader
         
         self.sigma_list = [1, 2, 4, 8, 16, 24, 32, 64]
 
