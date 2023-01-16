@@ -20,11 +20,11 @@ class Trainer():
 
         self.losses = []
         self.test_losses = []
-        self.model = Discriminator(k=self.p.k)
+        self.model = Discriminator(k=self.p.k).to(self.p.device)
         if self.p.cifar:
-            self.ims = torch.clamp(torch.randn(10*self.p.num_ims,3,32,32), 0,1)
+            self.ims = torch.clamp(torch.randn(10*self.p.num_ims,3,32,32), 0,1).to(self.p.device)
         else:
-            self.ims = torch.clamp(torch.randn(10*self.p.num_ims,1,28,28), 0,1)
+            self.ims = torch.randn(10*self.p.num_ims,1,28,28).to(self.p.device)
         self.ims = torch.nn.Parameter(self.ims)
         self.labels = torch.arange(10).repeat(self.p.num_ims,1).T.flatten()
 
@@ -57,10 +57,10 @@ class Trainer():
         if not os.path.isdir("./checkpoints"):
             os.mkdir("./checkpoints")
         file_name = './checkpoints/data.pt'
-        torch.save(torch.sigmoid(self.ims), file_name)
+        torch.save(torch.sigmoid(self.ims.cpu()), file_name)
 
         file_name = './checkpoints/labels.pt'
-        torch.save(self.labels, file_name)
+        torch.save(self.labels.cpu(), file_name)
 
     def train(self):
         gen = self.inf_train_gen()
@@ -80,7 +80,7 @@ class Trainer():
                 data, labels = next(gen)
 
                 self.model.zero_grad()
-                encX = self.model(data, labels)
+                encX = self.model(data.to(self.p.device), labels)
                 encY = self.model(torch.sigmoid(self.ims), self.labels)
 
                 if self.p.cmmd:
@@ -101,7 +101,7 @@ class Trainer():
 
             self.optIms.zero_grad()
 
-            encX = self.model(data, labels)
+            encX = self.model(data.to(self.p.device), labels)
             encY = self.model(torch.sigmoid(self.ims), self.labels)
 
             if self.p.cmmd:
