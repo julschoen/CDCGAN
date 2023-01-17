@@ -35,10 +35,9 @@ class Trainer():
 
         if self.p.norm_flow:
             flows = [MAF(dim=2, parity=i%2) for i in range(4)]
-            prior = TransformedDistribution(MultivariateNormal(torch.zeros(100)), SigmoidTransform().inv)
+            prior = TransformedDistribution(MultivariateNormal(torch.zeros(100), torch.eye(100)), SigmoidTransform().inv)
             self.norm_flow = NormalizingFlowModel(prior, flows)
             self.normOpt = torch.optim.Adam(self.norm_flow.parameters(), lr=1e-4, weight_decay=1e-5)
-
 
         if not os.path.isdir(self.p.log_dir):
             os.mkdir(self.p.log_dir)
@@ -184,7 +183,10 @@ class Trainer():
 
             if ((t+1)%100 == 0) or (t==0):
                 self.log_interpolation(t)
-                print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item()))
+                if self.p.norm_flow:
+                    print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}, Flow: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item(), nf_loss))
+                else:
+                    print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item()))
 
 
         self.tracker.stop()
