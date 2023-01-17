@@ -25,6 +25,9 @@ class Trainer():
         self.train_loader = train_loader
         self.gen = self.inf_train_gen()
 
+        if self.p.cont:
+            self.pdist = torch.nn.PairwiseDistance(p=2.0, keepdim=True)
+
 
         if not os.path.isdir(self.p.log_dir):
             os.mkdir(self.p.log_dir)
@@ -85,16 +88,11 @@ class Trainer():
     def contrastive(self, enc, labels):
         loss = 0
         for i, x1 in enumerate(enc):
-            for j, x2 in enumerate(enc):
-                if i == j: continue
-
-                y1, y2 = labels[i], labels[j]
-                d = torch.norm(x1-x2, p=2)
-
-                if y1 == y2:
-                    loss += d
-                else:
-                    loss -= d
+            d = self.pdist(x1.reshape(1,-1), enc).flatten()
+            diff = labels != labels[i]
+            d = d[diff] *-1
+            d = d.mean()
+            loss += d
 
         loss = loss/enc.shape[0]
 
