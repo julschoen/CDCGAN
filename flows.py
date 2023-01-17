@@ -377,7 +377,7 @@ class NormalizingFlowModel(nn.Module):
     def __init__(self, prior, flows, params):
         super().__init__()
         self.prior = prior
-        self.flow = NormalizingFlow(flows).to(params.device)
+        self.flow = NormalizingFlow(flows, params).to(params.device)
     
     def forward(self, x):
         zs, log_det = self.flow.forward(x)
