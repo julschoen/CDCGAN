@@ -34,9 +34,9 @@ class Trainer():
         self.gen = self.inf_train_gen()
 
         if self.p.norm_flow:
-            flows = [MAF(dim=2, parity=i%2) for i in range(4)]
-            prior = TransformedDistribution(MultivariateNormal(torch.zeros(100), torch.eye(100)), SigmoidTransform().inv)
-            self.norm_flow = NormalizingFlowModel(prior, flows)
+            flows = [MAF(dim=self.p.k, parity=i%2) for i in range(4)]
+            prior = TransformedDistribution(MultivariateNormal(torch.zeros(self.p.k), torch.eye(self.p.k)), SigmoidTransform().inv)
+            self.norm_flow = NormalizingFlowModel(prior, flows).to(self.p.device)
             self.normOpt = torch.optim.Adam(self.norm_flow.parameters(), lr=1e-4, weight_decay=1e-5)
 
         if not os.path.isdir(self.p.log_dir):
@@ -140,8 +140,10 @@ class Trainer():
                 encY = self.model(torch.sigmoid(self.ims), self.labels)
 
                 if self.p.norm_flow:
-                    encX = self.norm_flow(encX.squeeze())
-                    encY = self.norm_flow(encY.squeeze())
+                    encX, _, _ = self.norm_flow(encX.squeeze())
+                    encY, _, _ = self.norm_flow(encY.squeeze())
+                    encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
+                    encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
                 if self.p.cmmd:
                     mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
@@ -165,8 +167,10 @@ class Trainer():
             encY = self.model(torch.sigmoid(self.ims), self.labels)
 
             if self.p.norm_flow:
-                encX = self.norm_flow(encX.squeeze())
-                encY = self.norm_flow(encY.squeeze())
+                encX, _, _ = self.norm_flow(encX.squeeze())
+                encY, _, _ = self.norm_flow(encY.squeeze())
+                encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
+                encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
             if self.p.cmmd:
                 mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
