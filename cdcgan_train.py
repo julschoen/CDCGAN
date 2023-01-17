@@ -103,7 +103,7 @@ class Trainer():
             data, labels = next(self.gen)
             enc = self.model(data.to(self.p.device), labels)
 
-            zs, prior_logprob, log_det = self.norm_flow(enc)
+            zs, prior_logprob, log_det = self.norm_flow(enc.squeeze())
             logprob = prior_logprob + log_det
             loss = -torch.sum(logprob) # NLL
 
@@ -140,8 +140,8 @@ class Trainer():
                 encY = self.model(torch.sigmoid(self.ims), self.labels)
 
                 if self.p.norm_flow:
-                    encX = self.norm_flow(encX)
-                    encY = self.norm_flow(encY)
+                    encX = self.norm_flow(encX.squeeze())
+                    encY = self.norm_flow(encY.squeeze())
 
                 if self.p.cmmd:
                     mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
@@ -165,8 +165,8 @@ class Trainer():
             encY = self.model(torch.sigmoid(self.ims), self.labels)
 
             if self.p.norm_flow:
-                encX = self.norm_flow(encX)
-                encY = self.norm_flow(encY)
+                encX = self.norm_flow(encX.squeeze())
+                encY = self.norm_flow(encY.squeeze())
 
             if self.p.cmmd:
                 mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
