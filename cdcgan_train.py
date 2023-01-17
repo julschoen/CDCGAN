@@ -68,8 +68,8 @@ class Trainer():
 
     def shuffle(self):
         indices = torch.randperm(self.ims.shape[0])
-        self.ims = torch.nn.Parameter(torch.index_select(self.ims, dim=0, index=indices))
-        self.labels = torch.index_select(self.labels, dim=0, index=indices)
+        self.ims = torch.nn.Parameter(torch.index_select(self.ims, dim=0, index=indices.to(self.ims.device)))
+        self.labels = torch.index_select(self.labels, dim=0, index=indices.to(self.labels.device))
 
     def save(self):
         path = os.path.join(self.p.log_dir, 'checkpoints')
