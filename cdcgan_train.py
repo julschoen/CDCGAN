@@ -6,13 +6,21 @@ import torch.utils.data
 import torchvision.utils as vutils
 from torch.autograd import Variable
 import torch.nn.functional as F
+from torch.distributions import MultivariateNormal, Uniform, TransformedDistribution, SigmoidTransform
 import torchvision
 from carbontracker.tracker import CarbonTracker
 
 import os
 import numpy as np
+import itertools
+
 from cdcgan import Discriminator
 from mmd import mix_rbf_mmd2, mix_rbf_cmmd2
+from flows import (
+    AffineConstantFlow, ActNorm, AffineHalfFlow, 
+    SlowMAF, MAF, IAF, Invertible1x1Conv,
+    NormalizingFlow, NormalizingFlowModel,
+)
 
 
 class Trainer():
@@ -27,6 +35,12 @@ class Trainer():
 
         if self.p.cont:
             self.pdist = torch.nn.PairwiseDistance(p=2.0, keepdim=True)
+
+        if self.p.norm_flow:
+            flows = [MAF(dim=2, parity=i%2) for i in range(4)]
+            prior = TransformedDistribution(MultivariateNormal(torch.zeros(100)), SigmoidTransform().inv)
+            self.norm_flow = NormalizingFlowModel(prior, flows)
+            self.normOpt = torch.optim.Adam(self.norm_flow.parameters(), lr=1e-4, weight_decay=1e-5)
 
 
         if not os.path.isdir(self.p.log_dir):
@@ -85,18 +99,26 @@ class Trainer():
         file_name = os.path.join(path, 'labels.pt')
         torch.save(self.labels.cpu(), file_name)
 
-    def contrastive(self, enc, labels):
-        loss = 0
-        for i, x1 in enumerate(enc):
-            d = self.pdist(x1.reshape(1,-1), enc).flatten()
-            diff = labels != labels[i]
-            d = d[diff] *-1
-            d = d.mean()
-            loss += d
+    def flow(self):
+        for p in self.norm_flow.parameters():
+            p.requires_grad = True
 
-        loss = loss/enc.shape[0]
+        for _ in range(10):
+            data, labels = next(self.gen)
+            enc = self.model(data.to(self.p.device), labels)
 
-        return loss
+            zs, prior_logprob, log_det = self.norm_flow(enc)
+            logprob = prior_logprob + log_det
+            loss = -torch.sum(logprob) # NLL
+
+            self.norm_flow.zero_grad()
+            loss.backward()
+            self.normOpt.step()
+
+        for p in self.norm_flow.parameters():
+            p.requires_grad = False
+
+        return loss.detach().item()
 
     def train(self):
         for p in self.model.parameters():
@@ -105,36 +127,34 @@ class Trainer():
 
         for t in range(self.p.niter):
             self.tracker.epoch_start()
+
+            if self.p.norm_flow:
+                nf_loss = self.flow()
+
             for p in self.model.parameters():
                 p.requires_grad = True
             for _ in range(1):
-                if self.p.cont:
-                    data, labels = next(self.gen)
-                    self.model.zero_grad()
-                    encX = self.model(data.to(self.p.device), labels)
-                    
-                    errD = self.contrastive(encX, labels)
-                    errD.backward()
-                    self.optD.step()
+                for p in self.model.parameters():
+                    p.data.clamp_(-0.01, 0.01)
+
+                data, labels = next(self.gen)
+
+                self.model.zero_grad()
+                encX = self.model(data.to(self.p.device), labels)
+                encY = self.model(torch.sigmoid(self.ims), self.labels)
+
+                if self.p.norm_flow:
+                    encX = self.norm_flow(encX)
+                    encY = self.norm_flow(encY)
+
+                if self.p.cmmd:
+                    mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
                 else:
-                    for p in self.model.parameters():
-                        p.data.clamp_(-0.01, 0.01)
-
-                    data, labels = next(self.gen)
-
-                    self.model.zero_grad()
-                    encX = self.model(data.to(self.p.device), labels)
-                    self.shuffle()
-                    encY = self.model(torch.sigmoid(self.ims), self.labels)
-
-                    if self.p.cmmd:
-                        mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
-                    else:
-                        mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
-                    mmd2_D = F.relu(mmd2_D)
-                    errD = -torch.sqrt(mmd2_D)
-                    errD.backward()
-                    self.optD.step()
+                    mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                mmd2_D = F.relu(mmd2_D)
+                errD = -torch.sqrt(mmd2_D)
+                errD.backward()
+                self.optD.step()
 
 
             for p in self.model.parameters():
@@ -147,6 +167,10 @@ class Trainer():
 
             encX = self.model(data.to(self.p.device), labels)
             encY = self.model(torch.sigmoid(self.ims), self.labels)
+
+            if self.p.norm_flow:
+                encX = self.norm_flow(encX)
+                encY = self.norm_flow(encY)
 
             if self.p.cmmd:
                 mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
