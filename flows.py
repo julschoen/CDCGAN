@@ -346,13 +346,14 @@ class Invertible1x1Conv(nn.Module):
 class NormalizingFlow(nn.Module):
     """ A sequence of Normalizing Flows is a Normalizing Flow """
 
-    def __init__(self, flows):
+    def __init__(self, flows, params):
         super().__init__()
         self.flows = nn.ModuleList(flows)
+        self.p = params
 
     def forward(self, x):
         m, _ = x.shape
-        log_det = torch.zeros(m)
+        log_det = torch.zeros(m).to(self.p.device)
         zs = [x]
         for flow in self.flows:
             x, ld = flow.forward(x)
@@ -362,7 +363,7 @@ class NormalizingFlow(nn.Module):
 
     def backward(self, z):
         m, _ = z.shape
-        log_det = torch.zeros(m)
+        log_det = torch.zeros(m).to(self.p.device)
         xs = [z]
         for flow in self.flows[::-1]:
             z, ld = flow.backward(z)
