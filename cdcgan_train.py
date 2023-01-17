@@ -68,7 +68,7 @@ class Trainer():
 
     def shuffle(self):
         indices = torch.randperm(self.ims.shape[0])
-        self.ims = torch.index_select(self.ims, dim=0, index=indices)
+        self.ims = torch.nn.Parameter(torch.index_select(self.ims, dim=0, index=indices))
         self.labels = torch.index_select(self.labels, dim=0, index=indices)
 
     def save(self):
@@ -87,7 +87,6 @@ class Trainer():
         self.ims.requires_grad = False
 
         for t in range(self.p.niter):
-            #self.shuffle()
             self.tracker.epoch_start()
             for p in self.model.parameters():
                 p.requires_grad = True
@@ -99,6 +98,7 @@ class Trainer():
 
                 self.model.zero_grad()
                 encX = self.model(data.to(self.p.device), labels)
+                self.shuffle()
                 encY = self.model(torch.sigmoid(self.ims), self.labels)
 
                 if self.p.cmmd:
@@ -114,6 +114,7 @@ class Trainer():
             for p in self.model.parameters():
                 p.requires_grad = False
 
+            self.shuffle()
             self.ims.requires_grad = True
             data, labels = next(self.gen)
 
