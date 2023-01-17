@@ -33,9 +33,6 @@ class Trainer():
         self.train_loader = train_loader
         self.gen = self.inf_train_gen()
 
-        if self.p.cont:
-            self.pdist = torch.nn.PairwiseDistance(p=2.0, keepdim=True)
-
         if self.p.norm_flow:
             flows = [MAF(dim=2, parity=i%2) for i in range(4)]
             prior = TransformedDistribution(MultivariateNormal(torch.zeros(100)), SigmoidTransform().inv)
