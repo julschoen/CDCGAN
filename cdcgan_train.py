@@ -25,6 +25,7 @@ class Trainer():
         self.train_loader = train_loader
         self.gen = self.inf_train_gen()
 
+
         if not os.path.isdir(self.p.log_dir):
             os.mkdir(self.p.log_dir)
 
@@ -81,6 +82,24 @@ class Trainer():
         file_name = os.path.join(path, 'labels.pt')
         torch.save(self.labels.cpu(), file_name)
 
+    def contrastive(self, enc, labels):
+        loss = 0
+        for i, x1 in enumerate(enc):
+            for j, x2 in enumerate(enc):
+                if i == j: continue
+
+                y1, y2 = labels[i], labels[j]
+                d = torch.norm(x1-x2, p=2)
+
+                if y1 == y2:
+                    loss += d
+                else:
+                    loss -= d
+
+        loss = loss/enc.shape[0]
+
+        return loss
+
     def train(self):
         for p in self.model.parameters():
                     p.requires_grad = False
@@ -91,30 +110,38 @@ class Trainer():
             for p in self.model.parameters():
                 p.requires_grad = True
             for _ in range(1):
-                for p in self.model.parameters():
-                    p.data.clamp_(-0.01, 0.01)
-
-                data, labels = next(self.gen)
-
-                self.model.zero_grad()
-                encX = self.model(data.to(self.p.device), labels)
-                self.shuffle()
-                encY = self.model(torch.sigmoid(self.ims), self.labels)
-
-                if self.p.cmmd:
-                    mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                if self.p.cont:
+                    data, labels = next(self.gen)
+                    self.model.zero_grad()
+                    encX = self.model(data.to(self.p.device), labels)
+                    
+                    errD = self.contrastive(encX, labels)
+                    errD.backward()
+                    self.optD.step()
                 else:
-                    mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
-                mmd2_D = F.relu(mmd2_D)
-                errD = -torch.sqrt(mmd2_D)
-                errD.backward()
-                self.optD.step()
+                    for p in self.model.parameters():
+                        p.data.clamp_(-0.01, 0.01)
+
+                    data, labels = next(self.gen)
+
+                    self.model.zero_grad()
+                    encX = self.model(data.to(self.p.device), labels)
+                    self.shuffle()
+                    encY = self.model(torch.sigmoid(self.ims), self.labels)
+
+                    if self.p.cmmd:
+                        mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                    else:
+                        mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                    mmd2_D = F.relu(mmd2_D)
+                    errD = -torch.sqrt(mmd2_D)
+                    errD.backward()
+                    self.optD.step()
 
 
             for p in self.model.parameters():
                 p.requires_grad = False
 
-            self.shuffle()
             self.ims.requires_grad = True
             data, labels = next(self.gen)
 
