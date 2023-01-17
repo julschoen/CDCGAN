@@ -35,7 +35,7 @@ class Trainer():
 
         if self.p.norm_flow:
             flows = [MAF(dim=self.p.k, parity=i%2) for i in range(4)]
-            prior = TransformedDistribution(MultivariateNormal(torch.zeros(self.p.k), torch.eye(self.p.k)), SigmoidTransform().inv)
+            prior = TransformedDistribution(MultivariateNormal(torch.zeros(self.p.k).to(self.p.device), torch.eye(self.p.k).to(self.p.device)), SigmoidTransform().inv)
             self.norm_flow = NormalizingFlowModel(prior, flows, self.p).to(self.p.device)
             self.normOpt = torch.optim.Adam(self.norm_flow.parameters(), lr=1e-4, weight_decay=1e-5)
 
