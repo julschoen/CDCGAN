@@ -315,7 +315,7 @@ class Invertible1x1Conv(nn.Module):
         super().__init__()
         self.dim = dim
         self.device = params.device
-        Q = torch.nn.init.orthogonal_(torch.randn(dim, dim)).to(device)
+        Q = torch.nn.init.orthogonal_(torch.randn(dim, dim, device=self.device))
         P, L, U = torch.lu_unpack(*Q.lu())
         self.P = P # remains fixed during optimization
         self.L = nn.Parameter(L) # lower triangular portion
