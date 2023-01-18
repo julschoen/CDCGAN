@@ -7,6 +7,14 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import torch.utils.data as data_utils
 
+class Normalize(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, sample):
+        sample = sample-sample.min()
+        sample = sample/sample.max()
+        return sample
 
 class ConvNet(nn.Module):
     def __init__(self, params, num_classes=10, net_width=128, net_depth=3, net_act='relu', net_norm='instancenorm', net_pooling='avgpooling'):
@@ -134,8 +142,9 @@ def main():
     test_kwargs = {'batch_size': args.test_batch_size}
 
     transform=transforms.Compose([
-        transforms.ToTensor()
-        ])
+        transforms.ToTensor(),
+        Normalize()
+    ])
     if args.cifar:
         dataset1 = datasets.CIFAR10('./', train=True, download=True,
                            transform=transform)
