@@ -28,7 +28,6 @@ class Trainer():
         self.p = params
 
         self.losses = []
-        self.test_losses = []
         self.model = Discriminator(self.p).to(self.p.device)
         self.train_loader = train_loader
         self.gen = self.inf_train_gen()
@@ -184,6 +183,11 @@ class Trainer():
             self.ims.requires_grad = False
 
             self.tracker.epoch_end()
+
+            if self.p.norm_flow:
+                self.losses.append((errD.item(), errG.item(), nf_loss))
+            else:
+                self.losses.append((errD.item(), errG.item()))
 
             if ((t+1)%100 == 0) or (t==0):
                 self.log_interpolation(t)
