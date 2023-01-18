@@ -311,7 +311,7 @@ class Invertible1x1Conv(nn.Module):
     As introduced in Glow paper.
     """
     
-    def __init__(self, dim, param):
+    def __init__(self, dim, params):
         super().__init__()
         self.dim = dim
         self.device = param.device
