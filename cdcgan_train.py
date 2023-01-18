@@ -33,7 +33,7 @@ class Trainer():
         self.gen = self.inf_train_gen()
 
         if self.p.norm_flow:
-            flows = [NSF_CL(dim=self.p.k, K=8, B=3, hidden_dim=16) for _ in range(3)]
+            flows = [NSF_CL(dim=self.p.k, self.p, K=8, B=3, hidden_dim=16) for _ in range(3)]
             convs = [Invertible1x1Conv(dim=self.p.k) for _ in flows]
             norms = [ActNorm(dim=self.p.k) for _ in flows]
             flows = list(itertools.chain(*zip(norms, convs, flows)))
