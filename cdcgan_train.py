@@ -128,7 +128,7 @@ class Trainer():
         for t in range(self.p.niter):
             self.tracker.epoch_start()
 
-            if self.p.norm_flow and t>0:
+            if self.p.norm_flow:
                 nf_loss = self.flow()
 
             for p in self.model.parameters():
