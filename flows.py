@@ -323,7 +323,7 @@ class Invertible1x1Conv(nn.Module):
 
     def _assemble_W(self):
         """ assemble W from its pieces (P, L, U, S) """
-        L = torch.tril(self.L, diagonal=-1) + torch.diag(torch.ones(self.dim))
+        L = torch.tril(self.L, diagonal=-1) + torch.diag(torch.ones(self.dim).to(self.L.device))
         U = torch.triu(self.U, diagonal=1)
         W = self.P @ L @ (U + torch.diag(self.S))
         return W
