@@ -33,10 +33,7 @@ class Trainer():
         self.gen = self.inf_train_gen()
 
         if self.p.norm_flow:
-            flows = [NSF_CL(dim=self.p.k, params=self.p, K=8, B=3, hidden_dim=16) for _ in range(3)]
-            convs = [Invertible1x1Conv(dim=self.p.k, params=self.p).to(self.p.device) for _ in flows]
-            norms = [ActNorm(dim=self.p.k) for _ in flows]
-            flows = list(itertools.chain(*zip(norms, convs, flows)))
+            flows = [AffineHalfFlow(dim=self.p.k, parity=i%2) for i in range(9)]
             prior = TransformedDistribution(MultivariateNormal(torch.zeros(self.p.k).to(self.p.device), torch.eye(self.p.k).to(self.p.device)), SigmoidTransform().inv)
             self.norm_flow = NormalizingFlowModel(prior, flows, self.p).to(self.p.device)
             self.normOpt = torch.optim.Adam(self.norm_flow.parameters(), lr=1e-4, weight_decay=1e-5)
@@ -101,17 +98,16 @@ class Trainer():
         for p in self.norm_flow.parameters():
             p.requires_grad = True
 
-        for _ in range(10):
-            data, labels = next(self.gen)
-            enc = self.model(data.to(self.p.device), labels)
+        data, labels = next(self.gen)
+        enc = self.model(data.to(self.p.device), labels)
 
-            zs, prior_logprob, log_det = self.norm_flow(enc.squeeze())
-            logprob = prior_logprob + log_det
-            loss = -torch.sum(logprob) # NLL
-
-            self.norm_flow.zero_grad()
-            loss.backward()
-            self.normOpt.step()
+        zs, prior_logprob, log_det = self.norm_flow(enc.squeeze())
+        logprob = prior_logprob + log_det
+        loss = -torch.sum(logprob) # NLL
+        
+        self.norm_flow.zero_grad()
+        loss.backward()
+        self.normOpt.step()
 
         for p in self.norm_flow.parameters():
             p.requires_grad = False
