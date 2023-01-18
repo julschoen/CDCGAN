@@ -104,7 +104,7 @@ class Trainer():
         zs, prior_logprob, log_det = self.norm_flow(enc.squeeze())
         logprob = prior_logprob + log_det
         loss = -torch.sum(logprob) # NLL
-        
+
         self.norm_flow.zero_grad()
         loss.backward()
         self.normOpt.step()
