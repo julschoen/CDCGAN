@@ -81,7 +81,7 @@ class Trainer():
         if not os.path.isdir(path):
             os.mkdir(path)
         torchvision.utils.save_image(
-            vutils.make_grid(torch.sigmoid(self.ims), padding=2, normalize=True)
+            vutils.make_grid(torch.sigmoid(self.ims), nrow=self.p.num_ims padding=2, normalize=True)
             , os.path.join(path, f'{step}.png'))
 
     def shuffle(self):
