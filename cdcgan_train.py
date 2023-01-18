@@ -14,7 +14,8 @@ import os
 import numpy as np
 import itertools
 
-from cdcgan import Discriminator
+from cdcgan import Discriminator as DCGAN
+from biggan import Discriminator as BigGAN
 from mmd import mix_rbf_mmd2, mix_rbf_cmmd2
 from flows import (
     AffineConstantFlow, ActNorm, AffineHalfFlow, 
@@ -28,7 +29,10 @@ class Trainer():
         self.p = params
 
         self.losses = []
-        self.model = Discriminator(self.p).to(self.p.device)
+        if (not self.p.biggan) or self.p.mnist:
+            self.model = DCGAN(self.p).to(self.p.device)
+        else:
+            self.model = BigGAN().to(self.p.device)
         self.train_loader = train_loader
         self.gen = self.inf_train_gen()
 
