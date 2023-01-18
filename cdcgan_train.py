@@ -104,7 +104,7 @@ class Trainer():
             p.requires_grad = True
 
         data, labels = next(self.gen)
-        enc = self.model(data.to(self.p.device), labels)
+        enc = self.model(data.to(self.p.device), labels.to(self.p.device))
 
         zs, prior_logprob, log_det = self.norm_flow(enc.squeeze())
         logprob = prior_logprob + log_det
