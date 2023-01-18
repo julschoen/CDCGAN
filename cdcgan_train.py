@@ -29,7 +29,7 @@ class Trainer():
         self.p = params
 
         self.losses = []
-        if (not self.p.biggan) or self.p.mnist:
+        if (not self.p.biggan) or (not self.p.cifar):
             self.model = DCGAN(self.p).to(self.p.device)
         else:
             self.model = BigGAN().to(self.p.device)
