@@ -29,10 +29,11 @@ class Trainer():
         self.p = params
 
         self.losses = []
-        if (not self.p.biggan) or (not self.p.cifar):
-            self.model = DCGAN(self.p).to(self.p.device)
-        else:
+        if self.p.biggan and self.p.cifar:
             self.model = BigGAN().to(self.p.device)
+        else:
+            self.model = DCGAN(self.p).to(self.p.device)
+            
         self.train_loader = train_loader
         self.gen = self.inf_train_gen()
 
