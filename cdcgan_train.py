@@ -18,7 +18,7 @@ from cdcgan import Discriminator
 from mmd import mix_rbf_mmd2, mix_rbf_cmmd2
 from flows import (
     AffineConstantFlow, ActNorm, AffineHalfFlow, 
-    SlowMAF, MAF, IAF, Invertible1x1Conv,
+    SlowMAF, MAF, IAF, Invertible1x1Conv, NSF_AR, NSF_CL,
     NormalizingFlow, NormalizingFlowModel,
 )
 
@@ -33,7 +33,10 @@ class Trainer():
         self.gen = self.inf_train_gen()
 
         if self.p.norm_flow:
-            flows = [MAF(dim=self.p.k, parity=i%2) for i in range(4)]
+            flows = [NSF_CL(dim=self.p.k, K=8, B=3, hidden_dim=16) for _ in range(3)]
+            convs = [Invertible1x1Conv(dim=self.p.k) for _ in flows]
+            norms = [ActNorm(dim=self.p.k) for _ in flows]
+            flows = list(itertools.chain(*zip(norms, convs, flows)))
             prior = TransformedDistribution(MultivariateNormal(torch.zeros(self.p.k).to(self.p.device), torch.eye(self.p.k).to(self.p.device)), SigmoidTransform().inv)
             self.norm_flow = NormalizingFlowModel(prior, flows, self.p).to(self.p.device)
             self.normOpt = torch.optim.Adam(self.norm_flow.parameters(), lr=1e-4, weight_decay=1e-5)
