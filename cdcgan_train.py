@@ -109,9 +109,10 @@ class Trainer():
         logprob = prior_logprob + log_det
         loss = -torch.sum(logprob) # NLL
 
-        self.norm_flow.zero_grad()
-        loss.backward()
-        self.normOpt.step()
+        if loss > 0:
+            self.norm_flow.zero_grad()
+            loss.backward()
+            self.normOpt.step()
 
         for p in self.norm_flow.parameters():
             p.requires_grad = False
