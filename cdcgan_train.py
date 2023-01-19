@@ -133,7 +133,7 @@ class Trainer():
 
             for p in self.model.parameters():
                 p.requires_grad = True
-            for _ in range(1):
+            for _ in range(self.p.iterD):
                 for p in self.model.parameters():
                     p.data.clamp_(-0.01, 0.01)
 
@@ -163,28 +163,29 @@ class Trainer():
                 p.requires_grad = False
 
             self.ims.requires_grad = True
-            data, labels = next(self.gen)
+            for _ in range(self.p.iterIms):
+                data, labels = next(self.gen)
 
-            self.optIms.zero_grad()
+                self.optIms.zero_grad()
 
-            encX = self.model(data.to(self.p.device), labels.to(self.p.device))
-            encY = self.model(torch.sigmoid(self.ims), self.labels.to(self.p.device))
+                encX = self.model(data.to(self.p.device), labels.to(self.p.device))
+                encY = self.model(torch.sigmoid(self.ims), self.labels.to(self.p.device))
 
-            if self.p.norm_flow:
-                encX, _, _ = self.norm_flow(encX.squeeze())
-                encY, _, _ = self.norm_flow(encY.squeeze())
-                encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
-                encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
+                if self.p.norm_flow:
+                    encX, _, _ = self.norm_flow(encX.squeeze())
+                    encY, _, _ = self.norm_flow(encY.squeeze())
+                    encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
+                    encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
-            if self.p.cmmd:
-                mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
-            else:
-                mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
-            mmd2_G = F.relu(mmd2_G)
+                if self.p.cmmd:
+                    mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                else:
+                    mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                mmd2_G = F.relu(mmd2_G)
 
-            errG = torch.sqrt(mmd2_G)
-            errG.backward()
-            self.optIms.step()
+                errG = torch.sqrt(mmd2_G)
+                errG.backward()
+                self.optIms.step()
             self.ims.requires_grad = False
 
             self.tracker.epoch_end()
