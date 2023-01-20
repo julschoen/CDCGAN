@@ -195,7 +195,7 @@ class Trainer():
             else:
                 self.losses.append((errD.item(), errG.item()))
 
-            if self.p.reloadD and t > 0 and (t%500) == 0:
+            if self.p.reloadD and t > 0 and (t%2000) == 0:
                 if self.p.biggan and self.p.cifar:
                     self.model = BigGAN().to(self.p.device)
                 else:
