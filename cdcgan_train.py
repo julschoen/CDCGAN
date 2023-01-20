@@ -140,14 +140,9 @@ class Trainer():
                 data, labels = next(self.gen)
 
                 self.model.zero_grad()
-                if self.p.biggan:
-                    y_real = F.one_hot(labels, num_classes=10)
-                    y_syn = F.one_hot(self.labels, num_classes=10)
-                    encX = self.model(data.to(self.p.device), y_real.to(self.p.device))
-                    encY = self.model(torch.sigmoid(self.ims), y_syn.to(self.p.device))
-                else:
-                    encX = self.model(data.to(self.p.device), labels.to(self.p.device))
-                    encY = self.model(torch.sigmoid(self.ims), self.labels.to(self.p.device))
+   
+                encX = self.model(data.to(self.p.device), labels.to(self.p.device))
+                encY = self.model(torch.sigmoid(self.ims), self.labels.to(self.p.device))
 
                 if self.p.norm_flow:
                     encX, _, _ = self.norm_flow(encX.squeeze())
@@ -174,14 +169,8 @@ class Trainer():
 
                 self.optIms.zero_grad()
 
-                if self.p.biggan:
-                    y_real = F.one_hot(labels, num_classes=10)
-                    y_syn = F.one_hot(self.labels, num_classes=10)
-                    encX = self.model(data.to(self.p.device), y_real.to(self.p.device))
-                    encY = self.model(torch.sigmoid(self.ims), y_syn.to(self.p.device))
-                else:
-                    encX = self.model(data.to(self.p.device), labels.to(self.p.device))
-                    encY = self.model(torch.sigmoid(self.ims), self.labels.to(self.p.device))
+                encX = self.model(data.to(self.p.device), labels.to(self.p.device))
+                encY = self.model(torch.sigmoid(self.ims), self.labels.to(self.p.device))
 
                 if self.p.norm_flow:
                     encX, _, _ = self.norm_flow(encX.squeeze())
