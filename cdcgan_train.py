@@ -178,13 +178,27 @@ class Trainer():
                     encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
                     encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
-                if self.p.cmmd:
-                    mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
-                else:
-                    mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
-                mmd2_G = F.relu(mmd2_G)
+                if self.p.class_wise:
+                    errG = 0
+                    for i in range(10):
+                        X = encX[labels == i]
+                        Y = encY[self.labels == i]
 
-                errG = torch.sqrt(mmd2_G)
+                        if X.shape[0] < Y.shape[0]:
+                            Y = Y[:X.shape[0]]
+                        elif X.shape[0] > Y.shape[0]:
+                            X = X[:Y.shape[0]]
+
+                        l = mix_rbf_mmd2(X, Y, self.sigma_list)
+                        errG = errG + torch.sqrt(F.relu(l))
+                else:
+                    if self.p.cmmd:
+                        mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                    else:
+                        mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                    mmd2_G = F.relu(mmd2_G)
+
+                    errG = torch.sqrt(mmd2_G)
                 errG.backward()
                 self.optIms.step()
             self.ims.requires_grad = False
