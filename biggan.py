@@ -146,5 +146,5 @@ class Discriminator(nn.Module):
     # Get initial class-unconditional output
     out = self.linear(h)
     # Get projection of final featureset onto class vectors and add to evidence
-    #out = out + torch.sum(self.embed(y) * h, 1, keepdim=True)
+    out = out + torch.sum(self.embed(y) * h, 1, keepdim=True)
     return out
