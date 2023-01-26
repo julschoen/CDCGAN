@@ -81,7 +81,7 @@ class Trainer():
         if not os.path.isdir(path):
             os.mkdir(path)
         torchvision.utils.save_image(
-            vutils.make_grid(torch.sigmoid(self.ims), nrow=self.p.num_ims, padding=2, normalize=True)
+            vutils.make_grid(torch.tanh(self.ims), nrow=self.p.num_ims, padding=2, normalize=True)
             , os.path.join(path, f'{step}.png'))
 
     def shuffle(self):
@@ -94,7 +94,7 @@ class Trainer():
         if not os.path.isdir(path):
             os.mkdir(path)
         file_name = os.path.join(path, 'data.pt')
-        torch.save(torch.sigmoid(self.ims.cpu()), file_name)
+        torch.save(torch.tanh(self.ims.cpu()), file_name)
 
         file_name = os.path.join(path, 'labels.pt')
         torch.save(self.labels.cpu(), file_name)
@@ -142,7 +142,7 @@ class Trainer():
                 self.model.zero_grad()
    
                 encX = self.model(data.to(self.p.device), labels.to(self.p.device))
-                encY = self.model(torch.sigmoid(self.ims), self.labels.to(self.p.device))
+                encY = self.model(torch.tanh(self.ims), self.labels.to(self.p.device))
 
                 if self.p.norm_flow:
                     encX, _, _ = self.norm_flow(encX.squeeze())
@@ -170,7 +170,7 @@ class Trainer():
                 self.optIms.zero_grad()
 
                 encX = self.model(data.to(self.p.device), labels.to(self.p.device))
-                encY = self.model(torch.sigmoid(self.ims), self.labels.to(self.p.device))
+                encY = self.model(torch.tanh(self.ims), self.labels.to(self.p.device))
 
                 if self.p.norm_flow:
                     encX, _, _ = self.norm_flow(encX.squeeze())
