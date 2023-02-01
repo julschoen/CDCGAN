@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--iterD', type=int, default=1)
     parser.add_argument('--reloadD', type=bool, default=False)
     parser.add_argument('--class_wise', type=bool, default=False)
+    parser.add_argument('--fid', type=bool, default=False)
 
     # Model Params
     parser.add_argument('--k', type=int, default=100)

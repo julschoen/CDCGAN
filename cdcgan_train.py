@@ -22,6 +22,7 @@ from flows import (
     SlowMAF, MAF, IAF, Invertible1x1Conv, NSF_AR, NSF_CL,
     NormalizingFlow, NormalizingFlowModel,
 )
+from fid import calculate_frechet_distance as FID
 
 
 class Trainer():
@@ -144,18 +145,21 @@ class Trainer():
                 encX = self.model(data.to(self.p.device), labels.to(self.p.device))
                 encY = self.model(torch.tanh(self.ims), self.labels.to(self.p.device))
 
-                if self.p.norm_flow:
-                    encX, _, _ = self.norm_flow(encX.squeeze())
-                    encY, _, _ = self.norm_flow(encY.squeeze())
-                    encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
-                    encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
-
-                if self.p.cmmd:
-                    mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                if self.p.fid:
+                    errD = -FID(encX.squeeze(), encY.squeeze())
                 else:
-                    mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
-                mmd2_D = F.relu(mmd2_D)
-                errD = -torch.sqrt(mmd2_D)
+                    if self.p.norm_flow:
+                        encX, _, _ = self.norm_flow(encX.squeeze())
+                        encY, _, _ = self.norm_flow(encY.squeeze())
+                        encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
+                        encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
+
+                    if self.p.cmmd:
+                        mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                    else:
+                        mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                    mmd2_D = F.relu(mmd2_D)
+                    errD = -torch.sqrt(mmd2_D)
                 errD.backward()
                 self.optD.step()
 
@@ -172,33 +176,36 @@ class Trainer():
                 encX = self.model(data.to(self.p.device), labels.to(self.p.device))
                 encY = self.model(torch.tanh(self.ims), self.labels.to(self.p.device))
 
-                if self.p.norm_flow:
-                    encX, _, _ = self.norm_flow(encX.squeeze())
-                    encY, _, _ = self.norm_flow(encY.squeeze())
-                    encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
-                    encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
-
-                if self.p.class_wise:
-                    errG = 0
-                    for i in range(10):
-                        X = encX[labels == i]
-                        Y = encY[self.labels == i]
-
-                        if X.shape[0] < Y.shape[0]:
-                            Y = Y[:X.shape[0]]
-                        elif X.shape[0] > Y.shape[0]:
-                            X = X[:Y.shape[0]]
-
-                        l = mix_rbf_mmd2(X, Y, self.sigma_list)
-                        errG = errG + torch.sqrt(F.relu(l))
+                if self.p.fid:
+                    errG = FID(encX.squeeze(), encY.squeeze())
                 else:
-                    if self.p.cmmd:
-                        mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
-                    else:
-                        mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
-                    mmd2_G = F.relu(mmd2_G)
+                    if self.p.norm_flow:
+                        encX, _, _ = self.norm_flow(encX.squeeze())
+                        encY, _, _ = self.norm_flow(encY.squeeze())
+                        encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
+                        encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
-                    errG = torch.sqrt(mmd2_G)
+                    if self.p.class_wise:
+                        errG = 0
+                        for i in range(10):
+                            X = encX[labels == i]
+                            Y = encY[self.labels == i]
+
+                            if X.shape[0] < Y.shape[0]:
+                                Y = Y[:X.shape[0]]
+                            elif X.shape[0] > Y.shape[0]:
+                                X = X[:Y.shape[0]]
+
+                            l = mix_rbf_mmd2(X, Y, self.sigma_list)
+                            errG = errG + torch.sqrt(F.relu(l))
+                    else:
+                        if self.p.cmmd:
+                            mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
+                        else:
+                            mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                        mmd2_G = F.relu(mmd2_G)
+
+                        errG = torch.sqrt(mmd2_G)
                 errG.backward()
                 self.optIms.step()
             self.ims.requires_grad = False
