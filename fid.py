@@ -24,7 +24,5 @@ def calculate_frechet_distance(act1, act2, eps=1e-6):
 
     tr_covmean = torch.trace(covmean)
 
-    print(tr_covmean)
-
     return (torch.inner(diff, diff) + torch.trace(sigma1)
             + torch.trace(sigma2) - 2 * tr_covmean)
