@@ -226,9 +226,9 @@ class Trainer():
             if ((t+1)%100 == 0) or (t==0):
                 self.log_interpolation(t)
                 if self.p.norm_flow:
-                    print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}, Flow: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item(), nf_loss))
+                    print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}, Flow: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item(), nf_loss), flush=True)
                 else:
-                    print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item()))
+                    print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item()), flush=True)
 
 
         self.tracker.stop()
