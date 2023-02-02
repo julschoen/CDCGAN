@@ -22,7 +22,6 @@ def main():
     parser.add_argument('--lrIms', type=float, default=5e-3, metavar='LR', help='learning rate (default: 0.001)')
     parser.add_argument('--num_ims', type=int, default=10)
     parser.add_argument('--cifar', type=bool, default=True)
-    parser.add_argument('--cmmd', type=bool, default=False)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--init_ims', type=bool, default=False)
     parser.add_argument('--log_dir', type=str, default='./log')

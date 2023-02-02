@@ -49,7 +49,7 @@ class Trainer():
 
         if self.p.cifar:
             if self.p.init_ims:
-                self.ims, _ = next(self.gen)
+                self.ims = torch.load('means.pt')
                 self.ims = self.ims.to(self.p.device)
             else:
                 self.ims = torch.randn(10*self.p.num_ims,3,32,32).to(self.p.device)
@@ -154,10 +154,7 @@ class Trainer():
                         encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
                         encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
-                    if self.p.cmmd:
-                        mmd2_D = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
-                    else:
-                        mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                    mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list)
                     mmd2_D = F.relu(mmd2_D)
                     errD = -torch.sqrt(mmd2_D)
                 errD.backward()
@@ -199,10 +196,7 @@ class Trainer():
                             l = mix_rbf_mmd2(X, Y, self.sigma_list)
                             errG = errG + torch.sqrt(F.relu(l))
                     else:
-                        if self.p.cmmd:
-                            mmd2_G = mix_rbf_cmmd2(encX, encY, labels, self.labels, self.sigma_list)
-                        else:
-                            mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                        mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
                         mmd2_G = F.relu(mmd2_G)
 
                         errG = torch.sqrt(mmd2_G)
