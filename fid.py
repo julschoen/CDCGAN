@@ -2,6 +2,7 @@ import torch
 from torch.autograd import Function
 import numpy as np
 import math
+import torch.linalg as linalg
 
 def calculate_frechet_distance(X, Y):
     # the linear algebra ops will need some extra precision -> convert to double
