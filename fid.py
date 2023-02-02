@@ -1,7 +1,7 @@
 import torch
 from torch.autograd import Function
 import numpy as np
-from sqrtm import sqrtm
+import math
 
 def calculate_frechet_distance(X, Y):
     # the linear algebra ops will need some extra precision -> convert to double
