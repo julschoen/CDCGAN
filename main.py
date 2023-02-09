@@ -3,15 +3,6 @@ import torch
 from torchvision import datasets, transforms
 from cdcgan_train import Trainer
 
-class Normalize(object):
-    def __init__(self):
-        pass
-
-    def __call__(self, sample):
-        sample = sample-sample.min()
-        sample = sample/sample.max()
-        return sample
-
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
