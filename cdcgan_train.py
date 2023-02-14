@@ -121,6 +121,22 @@ class Trainer():
 
         return loss.detach().item()
 
+    def total_variation_loss(self, img, weight=1, four=True):
+        bs_img, c_img, h_img, w_img = img.size()
+
+        tv_h = torch.pow(img[:,:,1:,:]-img[:,:,:-1,:], 2).sum()
+        tv_w = torch.pow(img[:,:,:,1:]-img[:,:,:,:-1], 2).sum()
+
+        tv = weight*(tv_h+tv_w)/(bs_img*c_img*h_img*w_img)
+
+        if four:
+            tv_h4 = torch.pow(img[:,:,:-1,:]-img[:,:,1:,:], 2).sum()
+            tv_w4 = torch.pow(img[:,:,:,:-1]-img[:,:,:,1:], 2).sum()
+            tv = tv + weight*(tv_h4+tv_w4)/(bs_img*c_img*h_img*w_img)
+            tv = tv/2
+
+        return tv
+
     def train(self):
         for p in self.model.parameters():
                     p.requires_grad = False
@@ -200,6 +216,11 @@ class Trainer():
                         mmd2_G = F.relu(mmd2_G)
 
                         errG = torch.sqrt(mmd2_G)
+
+                if self.p.corr:
+                    corr = self.total_variation_loss(torch.tanh(ims))
+                    errG = errG + corr * self.p.corr_coef
+                
                 errG.backward()
                 self.optIms.step()
             self.ims.requires_grad = False
@@ -219,10 +240,14 @@ class Trainer():
 
             if ((t+1)%100 == 0) or (t==0):
                 self.log_interpolation(t)
+                s = '[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item())
+
                 if self.p.norm_flow:
-                    print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}, Flow: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item(), nf_loss), flush=True)
-                else:
-                    print('[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item()), flush=True)
+                    s = s+ ', Flow: {:.4f}'.format(nf_loss)
+                if self.p.corr:
+                    s =  s+ ', Corr: {:.4f}'.format(corr.item())
+                
+                print(s, flush=True)
 
 
         self.tracker.stop()
