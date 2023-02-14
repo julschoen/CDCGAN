@@ -218,7 +218,7 @@ class Trainer():
                         errG = torch.sqrt(mmd2_G)
 
                 if self.p.corr:
-                    corr = self.total_variation_loss(torch.tanh(ims))
+                    corr = self.total_variation_loss(torch.tanh(self.ims))
                     errG = errG + corr * self.p.corr_coef
                 
                 errG.backward()
