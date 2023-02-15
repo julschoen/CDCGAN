@@ -172,10 +172,11 @@ class Trainer():
                         encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
                     mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
-                    mmd2_D = F.relu(mmd2_D)
-                    errD = torch.sqrt(mmd2_D)
-                    if not self.p.repulsion:
-                        errD = errD*-1
+                    if self.p.repulsion:
+                        errD = mmd2_D
+                    else:
+                        mmd2_D = F.relu(mmd2_D)
+                        errD = -torch.sqrt(mmd2_D)
                 errD.backward()
                 self.optD.step()
 
@@ -216,9 +217,11 @@ class Trainer():
                             errG = errG + torch.sqrt(F.relu(l))
                     else:
                         mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
-                        mmd2_G = F.relu(mmd2_G)
-
-                        errG = torch.sqrt(mmd2_G)
+                        if self.p.repulsion:
+                            errG = mmd2_G
+                        else:
+                            mmd2_G = F.relu(mmd2_G)
+                            errG = torch.sqrt(mmd2_G)
 
                 if self.p.corr:
                     corr = self.total_variation_loss(torch.tanh(self.ims))
