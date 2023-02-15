@@ -80,7 +80,7 @@ def mix_rbf_mmd2_and_ratio(X, Y, sigma_list, biased=True):
 ################################################################################
 
 
-def _mmd2(K_XX, K_XY, K_YY, rep=False const_diagonal=False, biased=False):
+def _mmd2(K_XX, K_XY, K_YY, rep=False, const_diagonal=False, biased=False):
     m = K_XX.size(0)    # assume X, Y are same shape
 
     # Get the various sums of kernels that we'll use
