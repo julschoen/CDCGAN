@@ -173,7 +173,9 @@ class Trainer():
 
                     mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
                     mmd2_D = F.relu(mmd2_D)
-                    errD = -torch.sqrt(mmd2_D)
+                    errD = torch.sqrt(mmd2_D)
+                    if not self.p.repulsion:
+                        errD = errD*-1
                 errD.backward()
                 self.optD.step()
 
