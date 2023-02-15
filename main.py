@@ -20,7 +20,6 @@ def main():
     parser.add_argument('--biggan', type=bool, default=False)
     parser.add_argument('--iterIms', type=int, default=1)
     parser.add_argument('--iterD', type=int, default=1)
-    parser.add_argument('--reloadD', type=bool, default=False)
     parser.add_argument('--class_wise', type=bool, default=False)
     parser.add_argument('--fid', type=bool, default=False)
     parser.add_argument('--corr', type=bool, default=False)
