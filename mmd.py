@@ -43,10 +43,10 @@ def _mix_rbf_kernel(X, Y, sigma_list):
     return K[:m, :m], K[:m, m:], K[m:, m:], len(sigma_list)
 
 
-def mix_rbf_mmd2(X, Y, sigma_list, biased=True):
+def mix_rbf_mmd2(X, Y, sigma_list, rep=False, biased=True):
     K_XX, K_XY, K_YY, d = _mix_rbf_kernel(X, Y, sigma_list)
     # return _mmd2(K_XX, K_XY, K_YY, const_diagonal=d, biased=biased)
-    return _mmd2(K_XX, K_XY, K_YY, const_diagonal=False, biased=biased)
+    return _mmd2(K_XX, K_XY, K_YY, rep=rep, const_diagonal=False, biased=biased)
 
 
 def labelToMat(y):
@@ -80,7 +80,7 @@ def mix_rbf_mmd2_and_ratio(X, Y, sigma_list, biased=True):
 ################################################################################
 
 
-def _mmd2(K_XX, K_XY, K_YY, const_diagonal=False, biased=False):
+def _mmd2(K_XX, K_XY, K_YY, rep=False const_diagonal=False, biased=False):
     m = K_XX.size(0)    # assume X, Y are same shape
 
     # Get the various sums of kernels that we'll use
@@ -103,9 +103,9 @@ def _mmd2(K_XX, K_XY, K_YY, const_diagonal=False, biased=False):
     K_XY_sum = K_XY_sums_0.sum()                       # e^T * K_{XY} * e
 
     if biased:
-        mmd2 = ((Kt_XX_sum + sum_diag_X) / (m * m)
-            + (Kt_YY_sum + sum_diag_Y) / (m * m)
-            - 2.0 * K_XY_sum / (m * m))
+        mmd2 = ((Kt_XX_sum + sum_diag_X)
+            + (Kt_YY_sum + sum_diag_Y)
+            - 2.0 * K_XY_sum)
     else:
         mmd2 = (Kt_XX_sum / (m * (m - 1))
             + Kt_YY_sum / (m * (m - 1))
