@@ -151,8 +151,9 @@ class Trainer():
             for p in self.model.parameters():
                 p.requires_grad = True
             for _ in range(self.p.iterD):
-                for p in self.model.parameters():
-                    p.data.clamp_(-0.01, 0.01)
+                if not self.p.biggan:
+                    for p in self.model.parameters():
+                        p.data.clamp_(-0.01, 0.01)
 
                 data, labels = next(self.gen)
 
