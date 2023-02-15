@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--fid', type=bool, default=False)
     parser.add_argument('--corr', type=bool, default=False)
     parser.add_argument('--corr_coef', type=float, default=0.1)
-    parse.add_argument('--repulsion', type=bool, default=False)
+    parser.add_argument('--repulsion', type=bool, default=False)
 
     # Model Params
     parser.add_argument('--k', type=int, default=100)
