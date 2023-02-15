@@ -172,8 +172,12 @@ class Trainer():
                         encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
                     mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
-                    mmd2_D = F.relu(mmd2_D)
-                    errD = -torch.sqrt(mmd2_D)
+                    if self.p.repulsion:
+                        mmd2_D = F.relu(mmd2_D)
+                        errD = torch.sqrt(mmd2_D)
+                    else:
+                        mmd2_D = F.relu(mmd2_D)
+                        errD = -torch.sqrt(mmd2_D)
                 errD.backward()
                 self.optD.step()
 
