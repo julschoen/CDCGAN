@@ -16,7 +16,7 @@ import itertools
 
 from cdcgan import Discriminator as DCGAN
 from biggan import Discriminator as BigGAN
-from mmd import mix_rbf_mmd2, mix_rbf_cmmd2
+from mmd import mix_rbf_mmd2
 from flows import (
     AffineConstantFlow, ActNorm, AffineHalfFlow, 
     SlowMAF, MAF, IAF, Invertible1x1Conv, NSF_AR, NSF_CL,
