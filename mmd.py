@@ -45,33 +45,11 @@ def _mix_rbf_kernel(X, Y, sigma_list):
 
 def mix_rbf_mmd2(X, Y, sigma_list, rep=False, biased=True):
     K_XX, K_XY, K_YY, d = _mix_rbf_kernel(X, Y, sigma_list)
-    # return _mmd2(K_XX, K_XY, K_YY, const_diagonal=d, biased=biased)
     return _mmd2(K_XX, K_XY, K_YY, rep=rep, const_diagonal=False, biased=biased)
 
 
-def labelToMat(y):
-    fill = torch.zeros([y.shape[0], 10])
-    for i in range(y.shape[0]):
-        fill[i, y[i]] = 1
-    return fill
-
-
-def mix_rbf_cmmd2(X, Y, Xl, Yl, sigma_list, lam=1e-3, biased=True):
-    Xl, Yl = labelToMat(Xl), labelToMat(Yl)
-    K_XX, K_XY, K_YY, d = _mix_rbf_kernel(X, Y, sigma_list)
-    L_XX, L_XY, L_YY, _ = _mix_rbf_kernel(Xl, Yl, sigma_list)
-
-    reg = torch.diag(K_XX) * lam
-
-    XX = K_XX@torch.linalg.inv(K_XX+reg)@L_XX@torch.linalg.inv(K_XX+reg)
-    YY = K_YY@torch.linalg.inv(K_YY+reg)@L_YY@torch.linalg.inv(K_YY+reg)
-    XY = K_XY@torch.linalg.inv(K_XX+reg)@L_XY@torch.linalg.inv(K_YY+reg)
-
-    return _mmd2(XX,XY,YY, const_diagonal=False, biased=biased)
-
 def mix_rbf_mmd2_and_ratio(X, Y, sigma_list, biased=True):
     K_XX, K_XY, K_YY, d = _mix_rbf_kernel(X, Y, sigma_list)
-    # return _mmd2_and_ratio(K_XX, K_XY, K_YY, const_diagonal=d, biased=biased)
     return _mmd2_and_ratio(K_XX, K_XY, K_YY, const_diagonal=False, biased=biased)
 
 
