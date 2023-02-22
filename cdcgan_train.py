@@ -100,6 +100,37 @@ class Trainer():
         file_name = os.path.join(path, 'labels.pt')
         torch.save(self.labels.cpu(), file_name)
 
+    def start_from_checkpoint(self):
+        step = 0
+        path = os.path.join(self.p.log_dir, 'checkpoints')
+        checkpoint = os.path.join(path, 'checkpoint.pt')
+        if os.path.isfile(checkpoint):
+            state_dict = torch.load(checkpoint)
+            step = state_dict['step']
+
+            self.model.load_state_dict(state_dict['model'])
+            self.ims.load_state_dict(state_dict['ims'])
+
+            self.optD.load_state_dict(state_dict['optD'])
+            self.optIms.load_state_dict(state_dict['optIms'])
+
+            self.losses = state_dict['losses']
+            print('starting from step {}'.format(step))
+        return step
+
+    def checkpoint_save(self, step):
+        path = os.path.join(self.p.log_dir, 'checkpoints')
+        if not os.path.isdir(path):
+            os.mkdir(path)
+        torch.save({
+            'step': step,
+            'model': self.model.state_dict(),
+            'optD': self.optD.state_dict(),
+            'optIms': self.optIms.state_dict(),
+            'ims': self.ims,
+            'losses': self.losses,
+        }, os.path.join(path, 'checkpoint.pt'))    
+
     def flow(self):
         for p in self.norm_flow.parameters():
             p.requires_grad = True
@@ -142,7 +173,9 @@ class Trainer():
                     p.requires_grad = False
         self.ims.requires_grad = False
 
-        for t in range(self.p.niter):
+        step_done = self.start_from_checkpoint()
+
+        for t in range(step_done, self.p.niter):
             #self.tracker.epoch_start()
 
             if self.p.norm_flow:
@@ -247,7 +280,7 @@ class Trainer():
                     s = s+ ', Flow: {:.4f}'.format(nf_loss)
                 if self.p.corr:
                     s =  s+ ', Corr: {:.4f}'.format(corr.item())
-                
+                self.checkpoint_save(t)
                 print(s, flush=True)
 
 
