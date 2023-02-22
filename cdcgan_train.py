@@ -110,8 +110,10 @@ class Trainer():
 
             self.model.load_state_dict(state_dict['model'])
             self.ims = state_dict['ims']
+            self.ims = torch.nn.Parameter(self.ims)
 
             self.optD.load_state_dict(state_dict['optD'])
+            self.optIms = torch.optim.Adam([self.ims], lr=self.p.lrIms)
             self.optIms.load_state_dict(state_dict['optIms'])
 
             self.losses = state_dict['losses']
