@@ -70,7 +70,7 @@ class Trainer():
 
         if not os.path.isdir('./cdc_carbon'):
             os.mkdir('./cdc_carbon')
-        self.tracker = CarbonTracker(epochs=self.p.niter, log_dir='./cdc_carbon/')
+        #self.tracker = CarbonTracker(epochs=self.p.niter, log_dir='./cdc_carbon/')
 
     def inf_train_gen(self):
         while True:
@@ -143,7 +143,7 @@ class Trainer():
         self.ims.requires_grad = False
 
         for t in range(self.p.niter):
-            self.tracker.epoch_start()
+            #self.tracker.epoch_start()
 
             if self.p.norm_flow:
                 nf_loss = self.flow()
@@ -231,7 +231,7 @@ class Trainer():
                 self.optIms.step()
             self.ims.requires_grad = False
 
-            self.tracker.epoch_end()
+            #self.tracker.epoch_end()
 
             if self.p.norm_flow:
                 self.losses.append((errD.item(), errG.item(), nf_loss))
@@ -251,5 +251,5 @@ class Trainer():
                 print(s, flush=True)
 
 
-        self.tracker.stop()
+        #self.tracker.stop()
         self.save()
