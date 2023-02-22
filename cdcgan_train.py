@@ -109,7 +109,7 @@ class Trainer():
             step = state_dict['step']
 
             self.model.load_state_dict(state_dict['model'])
-            self.ims.load_state_dict(state_dict['ims'])
+            self.ims = state_dict['ims']
 
             self.optD.load_state_dict(state_dict['optD'])
             self.optIms.load_state_dict(state_dict['optIms'])
