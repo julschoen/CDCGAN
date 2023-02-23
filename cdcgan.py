@@ -70,7 +70,7 @@ class Discriminator(nn.Module):
         if not self.p.spectral_norm:
             x = self.conv3_bn(x)
         x = F.leaky_relu(x, 0.2)
-
+^       print(x.shape)
         x = torch.sigmoid(self.conv4(x))
 
         return x
