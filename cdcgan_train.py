@@ -193,7 +193,7 @@ class Trainer():
             for p in self.model.parameters():
                 p.requires_grad = True
             for _ in range(self.p.iterD):
-                if not self.p.biggan:
+                if not self.p.biggan and not self.p.spectral_norm:
                     for p in self.model.parameters():
                         p.data.clamp_(-0.01, 0.01)
 
