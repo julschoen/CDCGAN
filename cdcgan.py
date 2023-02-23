@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.utils.parametrizations import spectral_norm as SpectralNorm
 
 def conv(nc,ndf,kernel,stride,padding,bias,spectral):
     if spectral:
