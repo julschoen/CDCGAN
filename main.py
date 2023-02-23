@@ -26,6 +26,7 @@ def main():
     parser.add_argument('--corr_coef', type=float, default=1)
     parser.add_argument('--repulsion', type=bool, default=False)
     parser.add_argument('--var', type=bool, default=False)
+    parser.add_argument('--lr_schedule', type=bool, default=False)
 
     # Model Params
     parser.add_argument('--k', type=int, default=100)

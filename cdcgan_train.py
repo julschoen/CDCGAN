@@ -66,7 +66,14 @@ class Trainer():
 
         # setup optimizer
         self.optD = torch.optim.Adam(self.model.parameters(), lr=self.p.lr)
-        self.optIms = torch.optim.Adam([self.ims], lr=self.p.lrIms)
+        if self.p.schedule:
+            self.optIms = torch.optim.Adam([self.ims], lr=10)
+        else:
+            self.optIms = torch.optim.Adam([self.ims], lr=self.p.lrIms)
+
+        if self.p.lr_schedule:
+            lambda1 = lambda step: ((self.p.lrIms/10)**(1/self.p.niter)) ** step
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optIms, lr_lambda=lambda1)
 
         if not os.path.isdir('./cdc_carbon'):
             os.mkdir('./cdc_carbon')
@@ -278,7 +285,7 @@ class Trainer():
             else:
                 self.losses.append((errD.item(), errG.item()))
 
-
+            self.scheduler.step()
             if ((t+1)%100 == 0) or (t==0):
                 self.log_interpolation(t)
                 s = '[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item())
