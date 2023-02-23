@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 def conv(nc,ndf,kernel,stride,padding,bias,spectral):
-    if self.spectral
+    if spectral:
         return SpectralNorm(nn.Conv2d(nc, ndf, kernel, stride=stride, padding=padding, bias=bias))
     else:
         return nn.Conv2d(nc, ndf, kernel, stride=stride, padding=padding, bias=bias)
@@ -32,7 +32,7 @@ class Discriminator(nn.Module):
         self.conv3_bn = nn.BatchNorm2d(d*4)
 
         self.conv4 = nn.Conv2d(d * 4, params.k, final_kernel, 1, 0, False)
-        
+
         self.fill = torch.zeros([10, 10, im_size, im_size]).to(params.device)
         for i in range(10):
             self.fill[i, i, :, :] = 1
