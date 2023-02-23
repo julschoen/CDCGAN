@@ -132,7 +132,7 @@ def main():
     parser.add_argument('--save-model', type=bool, default=False)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--train_full', type=bool, default=False)
-    parser.add_argument('--cifar', type=bool, default=False)
+    parser.add_argument('--cifar', type=bool, default=True)
     parser.add_argument('--log_dir', type=str, default='./log')
     args = parser.parse_args()
 
