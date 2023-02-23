@@ -32,7 +32,7 @@ class Discriminator(nn.Module):
         self.conv3 = conv(d*2, d*4, 4, 2, 1, False, params.spectral_norm)
         self.conv3_bn = nn.BatchNorm2d(d*4)
 
-        self.conv4 = nn.Conv2d(d * 4, params.k, final_kernel, 1, 0, False)
+        self.conv4 = nn.Conv2d(d * 4, params.k, final_kernel, 1, 0)
 
         self.fill = torch.zeros([10, 10, im_size, im_size]).to(params.device)
         for i in range(10):
