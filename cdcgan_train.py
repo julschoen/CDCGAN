@@ -16,7 +16,7 @@ import itertools
 
 from cdcgan import Discriminator as DCGAN
 from biggan import Discriminator as BigGAN
-from mmd import mix_rbf_mmd2
+from mmd import mix_rbf_mmd2, mix_rbf_mmd2_and_ratio
 from flows import (
     AffineConstantFlow, ActNorm, AffineHalfFlow, 
     SlowMAF, MAF, IAF, Invertible1x1Conv, NSF_AR, NSF_CL,
@@ -205,8 +205,10 @@ class Trainer():
                         encY, _, _ = self.norm_flow(encY.squeeze())
                         encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
                         encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
-
-                    mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
+                    if self.p.var:
+                        mmd2_D, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
+                    else:
+                        mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
                     if self.p.repulsion:
                         errD = mmd2_D
                     else:
@@ -251,7 +253,10 @@ class Trainer():
                             l = mix_rbf_mmd2(X, Y, self.sigma_list)
                             errG = errG + torch.sqrt(F.relu(l))
                     else:
-                        mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                        if self.p.var:
+                            mmd2_G, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
+                        else:
+                            mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
                         if self.p.repulsion:
                             errG = mmd2_G
                         else:
