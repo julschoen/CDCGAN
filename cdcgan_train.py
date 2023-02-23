@@ -66,7 +66,7 @@ class Trainer():
 
         # setup optimizer
         self.optD = torch.optim.Adam(self.model.parameters(), lr=self.p.lr)
-        if self.p.schedule:
+        if self.p.lr_schedule:
             self.optIms = torch.optim.Adam([self.ims], lr=10)
         else:
             self.optIms = torch.optim.Adam([self.ims], lr=self.p.lrIms)
@@ -285,7 +285,8 @@ class Trainer():
             else:
                 self.losses.append((errD.item(), errG.item()))
 
-            self.scheduler.step()
+            if self.p.lr_schedule:
+                self.scheduler.step()
             if ((t+1)%100 == 0) or (t==0):
                 self.log_interpolation(t)
                 s = '[{}|{}] ErrD: {:.4f}, ErrG: {:.4f}'.format(t+1, self.p.niter, errD.item(), errG.item())
