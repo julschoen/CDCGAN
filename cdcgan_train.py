@@ -200,27 +200,27 @@ class Trainer():
                 data, labels = next(self.gen)
 
                 self.model.zero_grad()
-   
-                encX = self.model(data.to(self.p.device), labels.to(self.p.device))
-                encY = self.model(torch.tanh(self.ims), self.labels.to(self.p.device))
+                with torch.autocast(device_type=self.p.device, dtype=torch.float16):
+                    encX = self.model(data.to(self.p.device), labels.to(self.p.device))
+                    encY = self.model(torch.tanh(self.ims), self.labels.to(self.p.device))
 
-                if self.p.fid:
-                    errD = -FID(encX.squeeze(), encY.squeeze())
-                else:
-                    if self.p.norm_flow:
-                        encX, _, _ = self.norm_flow(encX.squeeze())
-                        encY, _, _ = self.norm_flow(encY.squeeze())
-                        encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
-                        encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
-                    if self.p.var:
-                        mmd2_D, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
+                    if self.p.fid:
+                        errD = -FID(encX.squeeze(), encY.squeeze())
                     else:
-                        mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
-                    if self.p.repulsion:
-                        errD = mmd2_D
-                    else:
-                        mmd2_D = F.relu(mmd2_D)
-                        errD = -torch.sqrt(mmd2_D)
+                        if self.p.norm_flow:
+                            encX, _, _ = self.norm_flow(encX.squeeze())
+                            encY, _, _ = self.norm_flow(encY.squeeze())
+                            encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
+                            encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
+                        if self.p.var:
+                            mmd2_D, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
+                        else:
+                            mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
+                        if self.p.repulsion:
+                            errD = mmd2_D
+                        else:
+                            mmd2_D = F.relu(mmd2_D)
+                            errD = -torch.sqrt(mmd2_D)
                 errD.backward()
                 self.optD.step()
 
@@ -233,46 +233,46 @@ class Trainer():
                 data, labels = next(self.gen)
 
                 self.optIms.zero_grad()
+                with torch.autocast(device_type=self.p.device, dtype=torch.float16):
+                    encX = self.model(data.to(self.p.device), labels.to(self.p.device))
+                    encY = self.model(torch.tanh(self.ims), self.labels.to(self.p.device))
 
-                encX = self.model(data.to(self.p.device), labels.to(self.p.device))
-                encY = self.model(torch.tanh(self.ims), self.labels.to(self.p.device))
-
-                if self.p.fid:
-                    errG = FID(encX.squeeze(), encY.squeeze())
-                else:
-                    if self.p.norm_flow:
-                        encX, _, _ = self.norm_flow(encX.squeeze())
-                        encY, _, _ = self.norm_flow(encY.squeeze())
-                        encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
-                        encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
-
-                    if self.p.class_wise:
-                        errG = 0
-                        for i in range(10):
-                            X = encX[labels == i]
-                            Y = encY[self.labels == i]
-
-                            if X.shape[0] < Y.shape[0]:
-                                Y = Y[:X.shape[0]]
-                            elif X.shape[0] > Y.shape[0]:
-                                X = X[:Y.shape[0]]
-
-                            l = mix_rbf_mmd2(X, Y, self.sigma_list)
-                            errG = errG + torch.sqrt(F.relu(l))
+                    if self.p.fid:
+                        errG = FID(encX.squeeze(), encY.squeeze())
                     else:
-                        if self.p.var:
-                            mmd2_G, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
-                        else:
-                            mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
-                        if self.p.repulsion:
-                            errG = mmd2_G
-                        else:
-                            mmd2_G = F.relu(mmd2_G)
-                            errG = torch.sqrt(mmd2_G)
+                        if self.p.norm_flow:
+                            encX, _, _ = self.norm_flow(encX.squeeze())
+                            encY, _, _ = self.norm_flow(encY.squeeze())
+                            encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
+                            encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
-                if self.p.corr:
-                    corr = self.total_variation_loss(torch.tanh(self.ims))
-                    errG = errG + corr * self.p.corr_coef
+                        if self.p.class_wise:
+                            errG = 0
+                            for i in range(10):
+                                X = encX[labels == i]
+                                Y = encY[self.labels == i]
+
+                                if X.shape[0] < Y.shape[0]:
+                                    Y = Y[:X.shape[0]]
+                                elif X.shape[0] > Y.shape[0]:
+                                    X = X[:Y.shape[0]]
+
+                                l = mix_rbf_mmd2(X, Y, self.sigma_list)
+                                errG = errG + torch.sqrt(F.relu(l))
+                        else:
+                            if self.p.var:
+                                mmd2_G, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
+                            else:
+                                mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                            if self.p.repulsion:
+                                errG = mmd2_G
+                            else:
+                                mmd2_G = F.relu(mmd2_G)
+                                errG = torch.sqrt(mmd2_G)
+
+                    if self.p.corr:
+                        corr = self.total_variation_loss(torch.tanh(self.ims))
+                        errG = errG + corr * self.p.corr_coef
                 
                 errG.backward()
                 self.optIms.step()
