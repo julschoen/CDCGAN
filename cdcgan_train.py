@@ -47,18 +47,11 @@ class Trainer():
         if not os.path.isdir(self.p.log_dir):
             os.mkdir(self.p.log_dir)
 
-        if self.p.cifar:
-            if self.p.init_ims:
-                self.ims = torch.load('means.pt')
-                self.ims = self.ims.to(self.p.device)
-            else:
-                self.ims = torch.randn(10*self.p.num_ims,3,32,32).to(self.p.device)
-        else:
-            if self.p.init_ims:
-                self.ims, _ = next(self.gen)
-                self.ims = self.ims.to(self.p.device)
-            else:
-                self.ims = torch.randn(10*self.p.num_ims,1,28,28).to(self.p.device)
+        self.ims = torch.randn(10*self.p.num_ims,3,32,32).to(self.p.device)
+
+        if self.p.init_ims:
+            self.init_ims()
+        
         self.ims = torch.nn.Parameter(self.ims)
         self.labels = torch.arange(10).repeat(self.p.num_ims,1).T.flatten()
         
@@ -83,6 +76,13 @@ class Trainer():
         while True:
             for data in self.train_loader:
                 yield data
+
+    def init_ims(self):
+        for c in range(10):
+            X = torch.load(os.path.join('../data/', f'data_class_{c}.pt'))
+            perm = torch.randperm(X.shape[0])[:self.p.num_ims]
+            xc = X[perm]
+            self.ims[c*self.p.num_ims:(c+1)*self.p.num_ims] = xc
 
     def log_interpolation(self, step):
         path = os.path.join(self.p.log_dir, 'images')
