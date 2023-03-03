@@ -38,7 +38,9 @@ def main():
 
     transform=transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(0.5, 0.5)
+        transforms.Normalize(
+            (0.5, 0.5, 0.5), 
+            (0.5, 0.5, 0.5))
         ])
     if args.cifar:
         dataset1 = datasets.CIFAR10('../data/', train=True, download=True,
