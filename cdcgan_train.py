@@ -213,17 +213,17 @@ class Trainer():
                             encX = encX[-1].reshape(encX[0].shape[0],-1,1,1)
                             encY = encY[-1].reshape(encY[0].shape[0],-1,1,1)
 
-                        errD = -torch.norm(encX.mean(dim=0)-encY.mean(dim=0))
+                        #errD = -torch.norm(encX.mean(dim=0)-encY.mean(dim=0))
 
-                        #if self.p.var:
-                        #    mmd2_D, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
-                        #else:
-                        #    mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
-                        #if self.p.repulsion:
-                        #    errD = mmd2_D
-                        #else:
-                        #    mmd2_D = F.relu(mmd2_D)
-                        #    errD = -torch.sqrt(mmd2_D)
+                        if self.p.var:
+                            mmd2_D, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
+                        else:
+                            mmd2_D = mix_rbf_mmd2(encX, encY, self.sigma_list, rep=self.p.repulsion)
+                        if self.p.repulsion:
+                            errD = mmd2_D
+                        else:
+                            mmd2_D = F.relu(mmd2_D)
+                            errD = -torch.sqrt(mmd2_D)
                 errD.backward()
                 self.optD.step()
 
@@ -263,16 +263,16 @@ class Trainer():
                                 l = mix_rbf_mmd2(X, Y, self.sigma_list)
                                 errG = errG + torch.sqrt(F.relu(l))
                         else:
-                            errG = torch.norm(encX.mean(dim=0)-encY.mean(dim=0))
-                            #if self.p.var:
-                            #    mmd2_G, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
-                            #else:
-                            #    mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
-                            #if self.p.repulsion:
-                            #    errG = mmd2_G
-                            #else:
-                            #    mmd2_G = F.relu(mmd2_G)
-                            #    errG = torch.sqrt(mmd2_G)
+                            #errG = torch.norm(encX.mean(dim=0)-encY.mean(dim=0))
+                            if self.p.var:
+                                mmd2_G, _, _ = mix_rbf_mmd2_and_ratio(encX, encY, self.sigma_list)
+                            else:
+                                mmd2_G = mix_rbf_mmd2(encX, encY, self.sigma_list)
+                            if self.p.repulsion:
+                                errG = mmd2_G
+                            else:
+                                mmd2_G = F.relu(mmd2_G)
+                                errG = torch.sqrt(mmd2_G)
 
                     if self.p.corr:
                         corr = self.total_variation_loss(torch.tanh(self.ims))
