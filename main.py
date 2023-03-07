@@ -31,7 +31,7 @@ def main():
 
     # Model Params
     parser.add_argument('--k', type=int, default=100)
-    parser.add_argument('--filter', type=int, default=128)
+    parser.add_argument('--filter', type=int, default=512)
     args = parser.parse_args()
 
     train_kwargs = {'batch_size': args.batch_size, 'shuffle':True}
